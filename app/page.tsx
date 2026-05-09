@@ -321,9 +321,9 @@ export default function Home() {
                   onChange={(event) => setDuration(Number(event.target.value))}
                   className="mt-2 w-full rounded-xl border border-gray-200 p-3"
                 >
-                  <option value={2}>2 segundos</option>
+                  <option value={5}>5 segundos</option>
+                  <option value={10}>10 segundos</option>
                   <option value={15}>15 segundos</option>
-                  <option value={30}>30 segundos</option>
                   <option value={60}>60 segundos</option>
                   <option value={120}>120 segundos</option>
                 </select>

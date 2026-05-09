@@ -1,8 +1,8 @@
 import { VideoCreateInput } from "@/types/video";
 
-const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY?.trim();
 const OPENROUTER_VIDEO_MODEL =
-  process.env.OPENROUTER_VIDEO_MODEL || "kwaivgi/kling-v3.0-std";
+  process.env.OPENROUTER_VIDEO_MODEL?.trim() || "google/veo-3.1";
 
 function assertApiKey() {
   if (!OPENROUTER_API_KEY) {
@@ -36,8 +36,7 @@ export async function createVideoJob(input: VideoCreateInput) {
     headers: {
       Authorization: `Bearer ${OPENROUTER_API_KEY}`,
       "Content-Type": "application/json",
-      "HTTP-Referer": process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
-      "X-Title": "Prompt2Video Studio",
+      "X-OpenRouter-Title": "Prompt2Video Studio",
     },
     body: JSON.stringify(payload),
   });
@@ -45,27 +44,39 @@ export async function createVideoJob(input: VideoCreateInput) {
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    throw new Error(data?.error?.message || data?.message || "Erro ao criar vídeo.");
+    throw new Error(
+      `Erro ao criar vídeo (${response.status}): ${data?.error?.message || data?.message || JSON.stringify(data)}`
+    );
   }
 
-  return data;
+  return {
+    ...data,
+    polling_url: typeof data?.polling_url === "string" && data.polling_url.startsWith("/")
+      ? `https://openrouter.ai${data.polling_url}`
+      : data.polling_url,
+  };
+}
+
+function normalizePollingUrl(pollingUrl: string) {
+  return pollingUrl.startsWith("/") ? `https://openrouter.ai${pollingUrl}` : pollingUrl;
 }
 
 export async function getVideoStatus(pollingUrl: string) {
   assertApiKey();
 
-  const response = await fetch(pollingUrl, {
+  const response = await fetch(normalizePollingUrl(pollingUrl), {
     headers: {
       Authorization: `Bearer ${OPENROUTER_API_KEY}`,
-      "HTTP-Referer": process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
-      "X-Title": "Prompt2Video Studio",
+      "X-OpenRouter-Title": "Prompt2Video Studio",
     },
   });
 
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    throw new Error(data?.error?.message || data?.message || "Erro ao consultar status.");
+    throw new Error(
+      `Erro ao consultar status (${response.status}): ${data?.error?.message || data?.message || JSON.stringify(data)}`
+    );
   }
 
   return data;
